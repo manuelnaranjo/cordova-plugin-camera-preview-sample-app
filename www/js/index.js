@@ -3,13 +3,13 @@ var app = {
   camera: 'front',
 
   startCameraAbove: function(){
-    CameraPreview.startCamera({x: 50, y: 50, width: 300, height: 300, toBack: false, previewDrag: true, tapPhoto: true, disableExifHeaderStripping: true, camera: app.camera}, function(){
+    CameraPreview.startCamera({x: 50, y: 50, width: 300, height: 300, toBack: false, previewDrag: true, tapPhoto: true, disableExifHeaderStripping: true, camera: app.camera, storeToFile: true}, function(){
       app.initCameraSize();
     });
   },
 
   startCameraBelow: function(){
-    CameraPreview.startCamera({x: 50, y: 50, width: 300, height:300, camera: app.camera, tapPhoto: true, previewDrag: false, toBack: true, disableExifHeaderStripping: true}, function(){
+    CameraPreview.startCamera({x: 50, y: 50, width: 300, height:300, camera: app.camera, tapPhoto: true, previewDrag: false, toBack: true, disableExifHeaderStripping: true, storeToFile: true}, function(){
       app.initCameraSize();
     });
   },
@@ -18,30 +18,59 @@ var app = {
     CameraPreview.stopCamera();
   },
 
+  fetchLocal: function(url, onSuccess, onError) {
+    var xhr = new XMLHttpRequest
+    xhr.onload = function() {
+      if (xhr.status != 0 && (xhr.status < 200 || xhr.status >= 300)) {
+        onError('Local request failed');
+        return;
+      }
+      var blob = new Blob([xhr.response], {type: "image/jpeg"});
+      onSuccess(blob);
+    };
+    xhr.onerror = function() {
+      onError('Local request failed');
+    };
+    xhr.open('GET', url);
+    xhr.responseType = 'arraybuffer';
+    xhr.send(null);
+  },
+
+  displayImage(src) {
+    let holder = document.getElementById('originalPicture');
+    let width = holder.offsetWidth;
+    loadImage(
+      image,
+      function(canvas) {
+        console.log('loaded image');
+        holder.innerHTML = "";
+        if (app.camera === 'front') {
+          // front camera requires we flip horizontally
+          canvas.style.transform = 'scale(1, -1)';
+        }
+        holder.appendChild(canvas);
+        console.log('image displayed');
+      },
+      {
+        maxWidth: width,
+        orientation: true,
+        canvas: true
+      }
+    );
+  }
+
   takePicture: function(){
     if (!app.dimension) {
       return;
     }
-    CameraPreview.takePicture({width: app.dimension.width, height: app.dimension.height}, function(imgData){
-      var image = 'data:image/jpeg;base64,' + imgData;
-      let holder = document.getElementById('originalPicture');
-      let width = holder.offsetWidth;
-      loadImage(
-        image,
-        function(canvas) {
-          holder.innerHTML = "";
-          if (app.camera === 'front') {
-            // front camera requires we flip horizontally
-            canvas.style.transform = 'scale(1, -1)';
-          }
-          holder.appendChild(canvas);
-        },
-        {
-          maxWidth: width,
-          orientation: true,
-          canvas: true
-        }
-      );
+    CameraPreview.takePicture({width: app.dimension.width, height: app.dimension.height}, function(data){
+      if (cordova.platformId === 'android') {
+        CameraPreview.fetchLocal('file://' + data, function(image) {
+          app.displayImage(image);
+        });
+      } else {
+        app.displayImage('data:image/jpeg;base64,' + data);
+      }
     });
   },
 

@@ -5,5 +5,5 @@
     <author email="dev@cordova.apache.org" href="http://cordova.io">Sample App</author>
     <content src="index.html" />
     <access origin="*" />
-    <plugin name="cordova-plugin-camera-preview" spec="git+https://github.com/manuelnaranjo/cordova-plugin-camera-preview.git" />
+    <plugin name="cordova-plugin-camera-preview" spec="https://github.com/manuelnaranjo/cordova-plugin-camera-preview.git#store-to-file" />
 </widget>
