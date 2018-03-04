@@ -1,10 +1,17 @@
 var app = {
+  dimension: null,
+  camera: 'front',
+
   startCameraAbove: function(){
-    CameraPreview.startCamera({x: 50, y: 50, width: 300, height: 300, toBack: false, previewDrag: true, tapPhoto: true});
+    CameraPreview.startCamera({x: 50, y: 50, width: 300, height: 300, toBack: false, previewDrag: true, tapPhoto: true, disableExifHeaderStripping: true, camera: app.camera}, function(){
+      app.initCameraSize();
+    });
   },
 
   startCameraBelow: function(){
-    CameraPreview.startCamera({x: 50, y: 50, width: 300, height:300, camera: "front", tapPhoto: true, previewDrag: false, toBack: true});
+    CameraPreview.startCamera({x: 50, y: 50, width: 300, height:300, camera: app.camera, tapPhoto: true, previewDrag: false, toBack: true, disableExifHeaderStripping: true}, function(){
+      app.initCameraSize();
+    });
   },
 
   stopCamera: function(){
@@ -12,12 +19,39 @@ var app = {
   },
 
   takePicture: function(){
-    CameraPreview.takePicture(function(imgData){
-      document.getElementById('originalPicture').src = 'data:image/jpeg;base64,' + imgData;
+    if (!app.dimension) {
+      return;
+    }
+    CameraPreview.takePicture({width: app.dimension.width, height: app.dimension.height}, function(imgData){
+      var image = 'data:image/jpeg;base64,' + imgData;
+      let holder = document.getElementById('originalPicture');
+      let width = holder.offsetWidth;
+      loadImage(
+        image,
+        function(canvas) {
+          holder.innerHTML = "";
+          if (app.camera === 'front') {
+            // front camera requires we flip horizontally
+            canvas.style.transform = 'scale(1, -1)';
+          }
+          holder.appendChild(canvas);
+        },
+        {
+          maxWidth: width,
+          orientation: true,
+          canvas: true
+        }
+      );
     });
   },
 
   switchCamera: function(){
+    // keep track of the camera been used
+    if (app.camera === 'front') {
+      app.camera = 'back';
+    } else {
+      app.camera = 'front';
+    }
     CameraPreview.switchCamera();
   },
 
@@ -62,7 +96,17 @@ var app = {
     });
   },
 
+  initCameraSize: function() {
+    CameraPreview.getSupportedPictureSizes(function(dimensions){
+      dimensions.sort(function(a, b){
+        return (b.width * b.height) - (a.width * a.height);
+      });
+      app.dimension = dimensions[0];
+    });
+  },
+
   init: function(){
+
     document.getElementById('startCameraAboveButton').addEventListener('click', this.startCameraAbove, false);
     document.getElementById('startCameraBelowButton').addEventListener('click', this.startCameraBelow, false);
 
@@ -90,6 +134,6 @@ var app = {
   }
 };
 
-document.addEventListener('deviceready', function(){	
+document.addEventListener('deviceready', function(){
   app.init();
 }, false);
