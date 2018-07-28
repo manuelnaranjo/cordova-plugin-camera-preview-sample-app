@@ -18,24 +18,6 @@ var app = {
     CameraPreview.stopCamera();
   },
 
-  fetchLocal: function(url, onSuccess, onError) {
-    var xhr = new XMLHttpRequest
-    xhr.onload = function() {
-      if (xhr.status != 0 && (xhr.status < 200 || xhr.status >= 300)) {
-        onError('Local request failed');
-        return;
-      }
-      var blob = new Blob([xhr.response], {type: "image/jpeg"});
-      onSuccess(blob);
-    };
-    xhr.onerror = function() {
-      onError('Local request failed');
-    };
-    xhr.open('GET', url);
-    xhr.responseType = 'arraybuffer';
-    xhr.send(null);
-  },
-
   displayImage(src) {
     let holder = document.getElementById('originalPicture');
     let width = holder.offsetWidth;
@@ -65,7 +47,7 @@ var app = {
     }
     CameraPreview.takePicture({width: app.dimension.width, height: app.dimension.height}, function(data){
       if (cordova.platformId === 'android') {
-        CameraPreview.fetchLocal('file://' + data, function(image) {
+        CameraPreview.getBlob('file://' + data, function(image) {
           app.displayImage(image);
         });
       } else {
